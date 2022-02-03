@@ -1,54 +1,30 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define OK_TEMPERATURE		    200
-#define NOT_OK_TEMPERATURE  	500
-
 int alertFailureCount = 0;
 
-int networkAlertStub(float celcius)
-{
-    int returnVal;
+int networkAlertStub(float celcius) {
     printf("ALERT: Temperature is %.1f celcius.\n", celcius);
     // Return 200 for ok
-    // Return 500 for not-ok
-    if(celcius > 200)
+    if( celcius <= 200.0f)
     {
-        returnVal =  NOT_OK_TEMPERATURE;
+        return 200; // Return 200 for ok
     }
-    else
+    else 
     {
-    	returnVal =  OK_TEMPERATURE;
+        return 500;//Return 500 for not-ok
     }
-    return returnVal;
+}
+float farenheitToCelcius(float farenheit)
+{
+float celcius;
+return(float (celcius = (farenheit - 32) * 5 / 9));
 }
 
-int networkAlert(float celcius)
-{
-    int returnVal;
-    printf("ALERT: Temperature is %.1f celcius.\n", celcius);
-    if(celcius > 200)
-    {
-        returnVal =  NOT_OK_TEMPERATURE;
-        alertFailureCount++;
-    }
-    else
-    {
-    	returnVal =  OK_TEMPERATURE;
-    }
-    return returnVal;
-}
 
-float convertFarenheitToCelcius(float farenheit)
-{
-    float celcius = (farenheit - 32) * 5 / 9;
-    return celcius;
-}
-
-void alertInCelcius(float farenheit, int (*fnPtrForNetworkAlert)(float))
-{
-    float celcius = convertFarenheitToCelcius(farenheit);
-    int returnCode = fnPtrForNetworkAlert(celcius);
+void alertInCelcius(float farenheit,int (*fpnetworkAlertStub)(float)) {
+    float celcius = farenheitToCelcius(farenheit);
+    int returnCode = fpnetworkAlertStub(celcius);
     if (returnCode != 200) {
         // non-ok response is not an error! Issues happen in life!
         // let us keep a count of failures to report
@@ -58,12 +34,13 @@ void alertInCelcius(float farenheit, int (*fnPtrForNetworkAlert)(float))
     }
 }
 
-int main()
-{
-    int (*fnPtrForNetworkAlert)(float) = networkAlertStub;
-    alertInCelcius(400.5, fnPtrForNetworkAlert);
-    alertInCelcius(303.6, fnPtrForNetworkAlert);
+int main() {
+    alertInCelcius(400.5,&networkAlertStub);
     assert(alertFailureCount == 1);
+    alertInCelcius(500.6,&networkAlertStub);
+    assert(alertFailureCount == 2);
+    alertInCelcius(200.5,&networkAlertStub);
+    assert(alertFailureCount == 2);
     printf("%d alerts failed.\n", alertFailureCount);
     printf("All is well (maybe!)\n");
     return 0;
